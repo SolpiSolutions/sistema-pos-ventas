@@ -1,0 +1,1 @@
+ALTER TABLE "sesiones_caja" ADD COLUMN "diferencia" numeric(12, 2) DEFAULT '0.0';
