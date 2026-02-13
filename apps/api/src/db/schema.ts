@@ -82,7 +82,7 @@ export const productos = pgTable('productos', {
     categoriaId: integer('categoria_id').references(() => categorias.id),
     imagenUrl: text('imagen_url'),
     estado: boolean('esta_activo').default(true),
-    actualizadoEn: timestamp('actualizado_en').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export const recetas = pgTable('recetas', {

@@ -111,6 +111,7 @@ export class VentasService {
 
             let montoTotalAcumulado = 0;
             const detallesParaInsertar: DetalleTemporal[] = [];
+            const insumosConBajoStock: any[] = [];
 
             for (const item of dto.detalles) {
                 const producto = await tx.query.productos.findFirst({
@@ -161,7 +162,16 @@ export class VentasService {
                     for (const r of det.recetas) {
                         if (!r.insumoId) continue;
 
+                        const insumo = await tx.query.insumos.findFirst({
+                            where: eq(schema.insumos.id, r.insumoId)
+                        });
+
+                        if (!insumo) continue;
+
                         const cantidadADescontar = Number(r.cantidadRequerida) * det.cantidad;
+                        const stockAntes = Number(insumo.stockActual);
+                        const stockDepues = stockAntes - cantidadADescontar;
+                        const stockMinimo = Number(insumo.stockMinimo);
 
                         // Actualización atómica de stock
                         await tx
@@ -170,6 +180,17 @@ export class VentasService {
                                 stockActual: sql`${schema.insumos.stockActual} - ${cantidadADescontar}`,
                             })
                             .where(eq(schema.insumos.id, r.insumoId));
+
+                        // Verificar si el stock quedó bajo el umbral mínimo
+                        if (stockDepues < stockMinimo) {
+                            insumosConBajoStock.push({
+                                insumoId: r.insumoId,
+                                nombreInsumo: insumo.nombre,
+                                stockActual: stockDepues,
+                                stockMinimo: stockMinimo,
+                                diferencia: stockMinimo - stockDepues
+                            });
+                        }
 
                         // Registro de movimiento
                         await tx.insert(schema.movimientosInventario).values({
@@ -184,7 +205,11 @@ export class VentasService {
                 }
             }
 
-            return { ...nuevaVenta, ticket: numeroTicket };
+            return {
+                ...nuevaVenta,
+                ticket: numeroTicket,
+                alertasInventario: insumosConBajoStock.length > 0 ? insumosConBajoStock : undefined
+            };
         });
     }
 

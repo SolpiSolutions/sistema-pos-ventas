@@ -59,15 +59,18 @@ export class InventarioService {
 
             if (!insumo) throw new NotFoundException('Insumo no encontrado');
 
-            // 2. Actualizar el stock actual
+            // 2. Calcular nuevo stock
             const nuevoStock = Number(insumo.stockActual) + ajusteDto.cantidad;
+            const stockMinimo = Number(insumo.stockMinimo);
+            const alerta = nuevoStock < stockMinimo ? `Alerta: Stock bajo (${nuevoStock} < ${stockMinimo})` : null;
 
+            // 3. Actualizar stock actual
             await tx
                 .update(schema.insumos)
                 .set({ stockActual: nuevoStock.toString() })
                 .where(eq(schema.insumos.id, id));
 
-            // 3. Registrar el movimiento
+            // 4. Registrar el movimiento
             await tx.insert(schema.movimientosInventario).values({
                 insumoId: id,
                 usuarioId: usuarioId,
@@ -76,7 +79,12 @@ export class InventarioService {
                 motivo: ajusteDto.motivo,
             });
 
-            return { message: 'Stock actualizado correctamente', nuevoStock };
+            return {
+                message: 'Stock actualizado correctamente',
+                nuevoStock,
+                stockMinimo,
+                alerta
+            };
         });
     }
 
@@ -91,6 +99,11 @@ export class InventarioService {
                 .returning();
 
             if (!insumoActualizado) throw new NotFoundException('Insumo no encontrado');
+
+            const stockActual = Number(insumoActualizado.stockActual);
+            const stockMinimo = Number(insumoActualizado.stockMinimo);
+            const alerta = stockActual < stockMinimo ? `Alerta: Stock bajo (${stockActual} < ${stockMinimo})` : null;
+
             await tx.insert(schema.movimientosInventario).values({
                 insumoId: dto.insumoId,
                 usuarioId: usuarioId,
@@ -99,7 +112,11 @@ export class InventarioService {
                 motivo: dto.motivo || 'Ingreso de mercadería manual',
             });
 
-            return insumoActualizado;
+            return {
+                message: 'Entrada registrada correctamente',
+                insumo: insumoActualizado,
+                alerta
+            };
         });
     }
 }
