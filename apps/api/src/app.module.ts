@@ -7,6 +7,7 @@ import { InventarioModule } from './inventario/inventario.module';
 import { CatalogoModule } from './catalogo/catalogo.module';
 import { VentasModule } from './ventas/ventas.module';
 import { ReportesModule } from './reportes/reportes.module';
+import { UserModule } from './users/user.module';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { ReportesModule } from './reportes/reportes.module';
     InventarioModule,
     CatalogoModule,
     VentasModule,
-    ReportesModule
+    ReportesModule,
+    UserModule
   ],
   controllers: [],
   providers: [],

@@ -5,28 +5,25 @@ import { PassportModule } from "@nestjs/passport";
 import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
 import { JwtStrategy } from "./jwt.strategy";
+import { UserModule } from "src/users/user.module";
+import { MailModule } from "src/common/mail/mail.module";
 
 @Module({
     imports: [
+        UserModule,
         PassportModule.register({ defaultStrategy: 'jwt' }),
         JwtModule.registerAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
-            useFactory: (configService: ConfigService) => {
-                const secret = configService.get<string>('JWT_SECRET');
-                if (!secret) {
-                    throw new Error('JWT_SECRET no está definido en las variables de entorno');
-                }
-                return {
-                    secret,
-                    signOptions: { expiresIn: '12h' },
-                };
-
-            },
+            useFactory: (configService: ConfigService) => ({
+                secret: configService.get<string>('JWT_SECRET'),
+                signOptions: { expiresIn: '12h' },
+            }),
         }),
+        MailModule,
     ],
     controllers: [AuthController],
     providers: [AuthService, JwtStrategy],
-    exports: [AuthService, PassportModule, JwtStrategy],
+    exports: [AuthService],
 })
 export class AuthModule { }

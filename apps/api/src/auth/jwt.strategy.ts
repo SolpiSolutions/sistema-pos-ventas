@@ -6,14 +6,22 @@ import { ExtractJwt, Strategy } from "passport-jwt";
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
     constructor(configService: ConfigService) {
+        const secret = configService.get<string>('JWT_SECRET');
+        if (!secret) throw new Error('jsonwebtoken no definido');
+
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
-            secretOrKey: configService.get<string>('JWT_SECRET') || 'AY_WEY_MI_MENTE',
+            secretOrKey: secret,
         });
     }
 
     async validate(payload: any) {
-        return { userId: payload.sub, nombre: payload.nombre, rol: payload.rol }
+        return {
+            userId: payload.sub,
+            nombre: payload.nombre,
+            rol: payload.rol,
+            esMaestro: payload.esMaestro
+        }
     }
 }

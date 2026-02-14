@@ -45,6 +45,8 @@ export const usuarios = pgTable('usuarios', {
     activo: boolean('activo').default(true),
     esMaestro: boolean('es_maestro').default(false),
     createdAt: timestamp('created_at').defaultNow(),
+    resetCode: varchar('reset_code', { length: 6 }),
+    resetExpires: timestamp('reset_expires'),
 });
 
 export const sesionesCaja = pgTable('sesiones_caja', {

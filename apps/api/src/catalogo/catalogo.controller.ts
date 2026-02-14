@@ -6,8 +6,11 @@ import { CloudinaryService } from "src/common/cloudinary/cloudinary.service";
 import { Roles } from "src/auth/decorators/roles.decorator";
 import { CreateCategoriaDto, CreateProductoDto, UpdateProductoDto } from "./dto/catalogo.dto";
 import type { FastifyRequest } from "fastify";
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 @Controller('catalogo')
+@ApiTags('Catálogo')
+@ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CatalogoController {
     constructor(
@@ -16,34 +19,56 @@ export class CatalogoController {
     ) { }
 
     @Get('categorias')
+    @ApiOperation({ summary: 'Obtener todas las categorías' })
+    @ApiResponse({ status: 200, description: 'Lista de categorías' })
     async findAllCategorias() {
         return this.catalogoService.findAllCategorias();
     }
 
     @Get('categorias/:id')
+    @ApiOperation({ summary: 'Obtener categoría por ID' })
+    @ApiParam({ name: 'id', type: Number, description: 'ID de la categoría' })
+    @ApiResponse({ status: 200, description: 'Categoría encontrada' })
+    @ApiResponse({ status: 404, description: 'Categoría no encontrada' })
     async findOneCat(@Param('id', ParseIntPipe) id: number) {
         return this.catalogoService.findOneCategoria(id);
     }
 
     @Post('categorias')
     @Roles('ADMINISTRADOR')
+    @ApiOperation({ summary: 'Crear nueva categoría', description: 'Solo disponible para administradores' })
+    @ApiBody({ type: CreateCategoriaDto })
+    @ApiResponse({ status: 201, description: 'Categoría creada exitosamente' })
+    @ApiResponse({ status: 403, description: 'No tiene permisos' })
     async createCategoria(@Body() dto: CreateCategoriaDto) {
         return this.catalogoService.createCategoria(dto.nombre);
     }
 
     @Get('productos')
+    @ApiOperation({ summary: 'Obtener productos', description: 'Por defecto solo activos. Use todos=true para incluir inactivos' })
+    @ApiQuery({ name: 'todos', required: false, type: Boolean, description: 'Si es true, devuelve también productos inactivos' })
+    @ApiResponse({ status: 200, description: 'Lista de productos' })
     async findAllProductos(@Query('todos') todos: string) {
         const soloActivos = todos !== 'true';
         return this.catalogoService.findAllProductos(soloActivos);
     }
 
     @Get('productos/:id')
+    @ApiOperation({ summary: 'Obtener producto por ID' })
+    @ApiParam({ name: 'id', description: 'ID del producto' })
+    @ApiResponse({ status: 200, description: 'Producto encontrado' })
+    @ApiResponse({ status: 404, description: 'Producto no encontrado' })
     async findOneProd(@Param('id') id: string) {
         return this.catalogoService.findOneProducto(id);
     }
 
     @Post('productos')
     @Roles('ADMINISTRADOR')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @ApiOperation({ summary: 'Crear nuevo producto', description: 'Requiere file multipart con imagen. Solo administradores' })
+    @ApiResponse({ status: 201, description: 'Producto creado exitosamente' })
+    @ApiResponse({ status: 400, description: 'Datos inválidos' })
+    @ApiResponse({ status: 403, description: 'No tiene permisos' })
     @UseGuards(JwtAuthGuard, RolesGuard)
     async createProducto(@Req() req: FastifyRequest) {
         if (!req.isMultipart()) {
@@ -76,6 +101,11 @@ export class CatalogoController {
 
     @Patch('productos/:id')
     @Roles('ADMINISTRADOR')
+    @ApiOperation({ summary: 'Actualizar producto', description: 'Solo administradores. Permite actualizar con o sin imagen' })
+    @ApiParam({ name: 'id', description: 'ID del producto' })
+    @ApiResponse({ status: 200, description: 'Producto actualizado' })
+    @ApiResponse({ status: 404, description: 'Producto no encontrado' })
+    @ApiResponse({ status: 403, description: 'No tiene permisos' })
     async updateProducto(@Param('id') id: string, @Req() req: FastifyRequest) {
         if (!req.isMultipart()) {
             const validatedData = UpdateProductoDto.schema.parse(req.body);
@@ -106,6 +136,11 @@ export class CatalogoController {
 
     @Delete('productos/:id')
     @Roles('ADMINISTRADOR')
+    @ApiOperation({ summary: 'Eliminar producto', description: 'Soft delete - marca como inactivo' })
+    @ApiParam({ name: 'id', description: 'ID del producto' })
+    @ApiResponse({ status: 200, description: 'Producto eliminado' })
+    @ApiResponse({ status: 404, description: 'Producto no encontrado' })
+    @ApiResponse({ status: 403, description: 'No tiene permisos' })
     async remove(@Param('id') id: string) {
         return this.catalogoService.softDeleteProducto(id);
     }
